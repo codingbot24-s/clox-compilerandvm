@@ -154,9 +154,8 @@ enum INTERPRETRESULT {
     INTERPRETRUNTIMEERROR,
 }
 
-
 /*
-        VM 
+        VM
 */
 
 struct Vm {
@@ -172,14 +171,11 @@ impl Vm {
         }
     }
 
-    fn interpret(&mut self, source:String) -> INTERPRETRESULT {
-        
-        let compiler =  compiler::new();
+    fn interpret(&mut self, source: String) -> INTERPRETRESULT {
+        let compiler = compiler::new();
         compiler.compile(source);
         INTERPRETRESULT::INTERPRETOK
     }
-
-    
 
     fn run(&mut self, c: &Chunk) -> INTERPRETRESULT {
         loop {
@@ -251,20 +247,16 @@ impl Vm {
     fn free_vm(&mut self) {}
 }
 
-
-
-
 /*
 
     code running function
 */
 
-fn repl(vm:&mut Vm) {
+fn repl(vm: &mut Vm) {
     println!(">   ");
     loop {
         for line in io::stdin().lines() {
             if let Ok(l) = line {
-                
                 let _ = vm.interpret(l);
             } else {
                 println!()
@@ -273,70 +265,69 @@ fn repl(vm:&mut Vm) {
     }
 }
 
-fn run_file (path:&str,vm:&mut Vm) {
+fn run_file(path: &str, vm: &mut Vm) {
     let buf = std::fs::read_to_string(path);
     match buf {
         Ok(source) => {
             vm.interpret(source);
         }
-        Err(err) => {println!("error reading from the file")}
-    } 
+        Err(err) => {
+            println!("error reading from the file")
+        }
+    }
 }
 
-
-
 /*
-    compiler 
+    compiler
 */
 struct compiler {}
 
 impl compiler {
-    fn new () -> Self {
-        Self { }
+    fn new() -> Self {
+        Self {}
     }
-    fn compile (&self, source:String) {
+    fn compile(&self, source: String) {
         let mut s = Scanner::new(source);
-        let mut line:usize = 0;
+        let mut line: usize = 0;
         loop {
             let token = s.scan_token();
             if token.line != line {
                 println!("{:4}", token.line);
                 line = token.line;
-            }else {
+            } else {
                 println!("   | ");
             }
-            
-            println!("{:?} '{}',{},", token.ttype, token.lexeme, token.line); 
-            
+
+            println!("{:?} '{}',{},", token.ttype, token.lexeme, token.line);
+
             // TODO: NOTE add break if token type == eof
             // fix this or it will not work expected
             // error partialeq missing for tokentype
             // if token.ttype == TokenType::EOF {
-                
+
             // }
         }
     }
 }
-
 
 /*
     Scanner
 */
 
 struct Scanner {
-    source:Vec<char>,
-    start:usize,
-    current:usize,
-    line:usize
+    source: Vec<char>,
+    start: usize,
+    current: usize,
+    line: usize,
 }
 
 impl Scanner {
-    fn new(source:String) -> Self {
+    fn new(source: String) -> Self {
         Self {
             source: source.chars().collect(),
-            start:0,
-            current:0,
-            line:1
+            start: 0,
+            current: 0,
+            line: 1,
         }
     }
 
@@ -361,34 +352,32 @@ impl Scanner {
             '!' => {
                 if self.check_expected('=') {
                     self.make_token(TokenType::BANGEQUAL)
-                }else {
+                } else {
                     self.make_token(TokenType::BANG)
                 }
-            } 
+            }
             '=' => {
                 if self.check_expected('=') {
                     self.make_token(TokenType::EQUALEQUAL)
-                }else {
+                } else {
                     self.make_token(TokenType::EQUAL)
                 }
             }
             '>' => {
                 if self.check_expected('=') {
                     self.make_token(TokenType::GREATEREQUAL)
-                }else {
+                } else {
                     self.make_token(TokenType::GREATER)
                 }
             }
             '<' => {
                 if self.check_expected('=') {
                     self.make_token(TokenType::LESSEQUAL)
-                }else {
+                } else {
                     self.make_token(TokenType::LESS)
                 }
             }
-            _ => {
-                self.error_token(&"Unexpected character.")
-            }
+            _ => self.error_token(&"Unexpected character."),
         }
     }
 
@@ -396,71 +385,65 @@ impl Scanner {
         self.current == self.source.len()
     }
 
-    fn make_token(&self,tt:TokenType) -> Token { 
-       
+    fn make_token(&self, tt: TokenType) -> Token {
         Token {
-            ttype:tt,
+            ttype: tt,
             lexeme: self.source[self.current..self.start].iter().collect(),
-            line:self.line
+            line: self.line,
         }
-        
     }
-    fn error_token(&self,message:&str) -> Token {
+    fn error_token(&self, message: &str) -> Token {
         Token {
-            ttype:TokenType::ERROR,
+            ttype: TokenType::ERROR,
             lexeme: message.to_string(),
-            line:self.line
+            line: self.line,
         }
     }
 
-    fn advance (&mut self) -> char {
+    fn advance(&mut self) -> char {
         self.current += 1;
         let c = self.source[self.current - 1];
         c
-    } 
-    fn check_expected (&mut self,expected:char) -> bool {
+    }
+    fn check_expected(&mut self, expected: char) -> bool {
         if self.is_at_end() {
             return false;
-        }else if self.source[self.current] != expected {
+        } else if self.source[self.current] != expected {
             return false;
         }
-        self.current +=1;
+        self.current += 1;
         return true;
     }
 
-    fn skip_whitespace (&mut self) {
+    fn skip_whitespace(&mut self) {
         loop {
-           match self.peek() {
-                ' '  | '\r' | '\t' => {
+            match self.peek() {
+                ' ' | '\r' | '\t' => {
                     self.advance();
                     break;
                 }
                 '\n' => {
-                    self.line+=1;
+                    self.line += 1;
                     self.advance();
                     break;
                 }
-                _ => return
-           } 
+                _ => return,
+            }
         }
-    } 
+    }
 
-    fn peek (&self) -> char {
+    fn peek(&self) -> char {
         self.source[self.current]
     }
 }
 
-
-
 struct Token {
-    ttype:TokenType,
-    lexeme:String,
-    line:usize,
+    ttype: TokenType,
+    lexeme: String,
+    line: usize,
 }
 
-impl Token {
-    
-}
+impl Token {}
 
 #[derive(Debug)]
 enum TokenType {
@@ -508,19 +491,17 @@ enum TokenType {
 
     EOF,
 
-
-    ERROR
+    ERROR,
 }
-
 
 fn main() {
     let mut vm = Vm::new_vm();
 
     let args: Vec<String> = env::args().collect();
-    
+
     match args.len() {
         1 => repl(&mut vm),
-        2 => run_file(&args[1],&mut vm),
+        2 => run_file(&args[1], &mut vm),
         _ => {
             println!("Usage: clox [path]");
             std::process::exit(64);
@@ -531,5 +512,3 @@ fn main() {
 }
 
 // remaining from scanner //
-
-
