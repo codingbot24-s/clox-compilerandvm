@@ -1,4 +1,4 @@
-use std::{env, io};
+use std::{char, env, io};
 
 #[derive(Debug)]
 enum OPCODE {
@@ -341,6 +341,7 @@ impl Scanner {
     }
 
     fn scan_token(&mut self) -> Token {
+        self.skip_whitespace();
         self.start = self.current;
         if self.is_at_end() {
             self.make_token(TokenType::EOF);
@@ -393,7 +394,6 @@ impl Scanner {
 
     fn is_at_end(&self) -> bool {
         self.current == self.source.len()
-        
     }
 
     fn make_token(&self,tt:TokenType) -> Token { 
@@ -428,7 +428,26 @@ impl Scanner {
         return true;
     }
 
-    
+    fn skip_whitespace (&mut self) {
+        loop {
+           match self.peek() {
+                ' '  | '\r' | '\t' => {
+                    self.advance();
+                    break;
+                }
+                '\n' => {
+                    self.line+=1;
+                    self.advance();
+                    break;
+                }
+                _ => return
+           } 
+        }
+    } 
+
+    fn peek (&self) -> char {
+        self.source[self.current]
+    }
 }
 
 
