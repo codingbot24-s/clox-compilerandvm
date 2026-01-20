@@ -308,7 +308,8 @@ impl compiler {
             
             println!("{:?} '{}',{},", token.ttype, token.lexeme, token.line); 
             
-            // add break if token type == eof
+            // TODO: NOTE add break if token type == eof
+            // fix this or it will not work expected
             // error partialeq missing for tokentype
             // if token.ttype == TokenType::EOF {
                 
@@ -344,7 +345,50 @@ impl Scanner {
         if self.is_at_end() {
             self.make_token(TokenType::EOF);
         }
-        self.error_token(&"Unexpected character.")
+        match self.advance() {
+            '(' => self.make_token(TokenType::LEFTPAREN),
+            ')' => self.make_token(TokenType::RIGHTPAREN),
+            '{' => self.make_token(TokenType::LEFTBRACE),
+            '}' => self.make_token(TokenType::RIGHTBRACE),
+            ',' => self.make_token(TokenType::COMMA),
+            '.' => self.make_token(TokenType::DOT),
+            '-' => self.make_token(TokenType::MINUS),
+            '+' => self.make_token(TokenType::PLUS),
+            ';' => self.make_token(TokenType::SEMICOLON),
+            '*' => self.make_token(TokenType::STAR),
+            '/' => self.make_token(TokenType::SLASH),
+            '!' => {
+                if self.check_expected('=') {
+                    self.make_token(TokenType::BANGEQUAL)
+                }else {
+                    self.make_token(TokenType::BANG)
+                }
+            } 
+            '=' => {
+                if self.check_expected('=') {
+                    self.make_token(TokenType::EQUALEQUAL)
+                }else {
+                    self.make_token(TokenType::EQUAL)
+                }
+            }
+            '>' => {
+                if self.check_expected('=') {
+                    self.make_token(TokenType::GREATEREQUAL)
+                }else {
+                    self.make_token(TokenType::GREATER)
+                }
+            }
+            '<' => {
+                if self.check_expected('=') {
+                    self.make_token(TokenType::LESSEQUAL)
+                }else {
+                    self.make_token(TokenType::LESS)
+                }
+            }
+            _ => {
+                self.error_token(&"Unexpected character.")
+            }
+        }
     }
 
     fn is_at_end(&self) -> bool {
@@ -368,6 +412,23 @@ impl Scanner {
             line:self.line
         }
     }
+
+    fn advance (&mut self) -> char {
+        self.current += 1;
+        let c = self.source[self.current - 1];
+        c
+    } 
+    fn check_expected (&mut self,expected:char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }else if self.source[self.current] != expected {
+            return false;
+        }
+        self.current +=1;
+        return true;
+    }
+
+    
 }
 
 
@@ -451,4 +512,5 @@ fn main() {
 }
 
 // remaining from scanner //
+
 
