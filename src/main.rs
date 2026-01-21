@@ -376,11 +376,30 @@ impl Scanner {
                 } else {
                     self.make_token(TokenType::LESS)
                 }
+            
             }
+            '"' => {
+                self.string()
+            }
+            '0'..'9' => {
+                self.number()            }
             _ => self.error_token(&"Unexpected character."),
         }
     }
+    
+    fn number (&mut self) -> Token {
+        while self.peek().is_digit(10){
+            self.advance();
+        }
+        if self.peek() == '.' && self.peek_next().is_digit(10) {
+            self.advance();
 
+            while self.peek().is_digit(10){
+                self.advance();
+            }
+        }
+        self.make_token(TokenType::NUMBER) 
+    }
     fn is_at_end(&self) -> bool {
         self.current == self.source.len()
     }
@@ -427,13 +446,46 @@ impl Scanner {
                     self.advance();
                     break;
                 }
-                _ => return,
+                '/' => {
+                    if self.peek_next() == '/' {
+                        while self.peek() != '\n' && !self.is_at_end() {
+                            self.advance();
+                        }
+                    }else {
+                       return; 
+                    }
+                }
+                _ => {
+                    return;
+                }
             }
         }
     }
 
     fn peek(&self) -> char {
         self.source[self.current]
+    }
+
+    fn peek_next (&self) -> char {
+        if self.is_at_end() {
+            return '\0'
+        }else {
+             self.source[self.current + 1]
+        }
+    }
+    fn string(&mut self) -> Token {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line +=1;
+            }
+            self.advance();
+        }
+        if self.is_at_end() {
+            return self.make_token(TokenType::EOF);
+        }
+        // for closing qoute'"'
+        self.advance();
+        self.make_token(TokenType::STRING)
     }
 }
 
