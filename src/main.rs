@@ -382,11 +382,15 @@ impl Scanner {
                 self.string()
             }
             '0'..'9' => {
-                self.number()            }
+                self.number()            
+            }
+            // TODO: --> how can we check for alpha so we can make a IDENTIFIER 
             _ => self.error_token(&"Unexpected character."),
         }
     }
-    
+   
+        
+
     fn number (&mut self) -> Token {
         while self.peek().is_digit(10){
             self.advance();
