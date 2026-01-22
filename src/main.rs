@@ -337,7 +337,8 @@ impl Scanner {
         if self.is_at_end() {
             self.make_token(TokenType::EOF);
         }
-        match self.advance() {
+        let c = self.advance(); 
+        match c {
             '(' => self.make_token(TokenType::LEFTPAREN),
             ')' => self.make_token(TokenType::RIGHTPAREN),
             '{' => self.make_token(TokenType::LEFTBRACE),
@@ -384,12 +385,21 @@ impl Scanner {
             '0'..'9' => {
                 self.number()            
             }
-            // TODO: --> how can we check for alpha so we can make a IDENTIFIER 
+            _ if c.is_alphabetic() => self.identifier(),
             _ => self.error_token(&"Unexpected character."),
         }
     }
    
-        
+    fn identifier (&mut self) -> Token {
+        while self.peek().is_alphabetic() || self.peek().is_digit(10) {
+            self.advance();
+        }
+        return self.make_token(self.identifier_type())
+    }
+
+    fn identifier_type (&self) -> TokenType {
+        TokenType::IDENTIFIER
+    }
 
     fn number (&mut self) -> Token {
         while self.peek().is_digit(10){
