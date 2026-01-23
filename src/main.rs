@@ -337,7 +337,7 @@ impl Scanner {
         if self.is_at_end() {
             self.make_token(TokenType::EOF);
         }
-        let c = self.advance(); 
+        let c = self.advance();
         match c {
             '(' => self.make_token(TokenType::LEFTPAREN),
             ')' => self.make_token(TokenType::RIGHTPAREN),
@@ -377,42 +377,58 @@ impl Scanner {
                 } else {
                     self.make_token(TokenType::LESS)
                 }
-            
             }
-            '"' => {
-                self.string()
-            }
-            '0'..'9' => {
-                self.number()            
-            }
+            '"' => self.string(),
+            '0'..'9' => self.number(),
             _ if c.is_alphabetic() => self.identifier(),
             _ => self.error_token(&"Unexpected character."),
         }
     }
-   
-    fn identifier (&mut self) -> Token {
+
+    fn identifier(&mut self) -> Token {
         while self.peek().is_alphabetic() || self.peek().is_digit(10) {
             self.advance();
         }
-        return self.make_token(self.identifier_type())
+        return self.make_token(self.identifier_type());
     }
 
-    fn identifier_type (&self) -> TokenType {
+    fn identifier_type(&self) -> TokenType {
+        match self.source[self.start] {
+            'a' => self.check_keyword(1, 2, "nd", TokenType::AND),
+            'c' => self.check_keyword(1, 4, "lass", TokenType::CLASS),
+            'e' => self.check_keyword(1, 3, "lse", TokenType::ELSE),
+            'i' => self.check_keyword(1, 1, "f", TokenType::IF),
+            'n' => self.check_keyword(1, 2, "il", TokenType::NIL),
+            'o' => self.check_keyword(1, 1, "or", TokenType::OR),
+            'p' => self.check_keyword(1, 4, "rint", TokenType::PRINT),
+            'r' => self.check_keyword(1, 5, "eturn", TokenType::RETURN),
+            's' => self.check_keyword(1, 4, "uper", TokenType::SUPER),
+            'v' => self.check_keyword(1, 2, "ar", TokenType::VAR),
+            'w' => self.check_keyword(1, 4, "hile", TokenType::WHILE),
+            _ => {
+                todo!()
+            }
+        };
+
         TokenType::IDENTIFIER
     }
 
-    fn number (&mut self) -> Token {
-        while self.peek().is_digit(10){
+    fn check_keyword(&self,start:usize,len:usize,rest:&str,tt:TokenType) -> TokenType {
+        todo!()
+    }
+
+    fn number(&mut self) -> Token {
+        while self.peek().is_digit(10) {
             self.advance();
         }
         if self.peek() == '.' && self.peek_next().is_digit(10) {
             self.advance();
 
-            while self.peek().is_digit(10){
+            while self.peek().is_digit(10) {
                 self.advance();
             }
         }
-        self.make_token(TokenType::NUMBER) 
+        self.make_token(TokenType::NUMBER)
     }
     fn is_at_end(&self) -> bool {
         self.current == self.source.len()
@@ -465,8 +481,8 @@ impl Scanner {
                         while self.peek() != '\n' && !self.is_at_end() {
                             self.advance();
                         }
-                    }else {
-                       return; 
+                    } else {
+                        return;
                     }
                 }
                 _ => {
@@ -480,17 +496,17 @@ impl Scanner {
         self.source[self.current]
     }
 
-    fn peek_next (&self) -> char {
+    fn peek_next(&self) -> char {
         if self.is_at_end() {
-            return '\0'
-        }else {
-             self.source[self.current + 1]
+            return '\0';
+        } else {
+            self.source[self.current + 1]
         }
     }
     fn string(&mut self) -> Token {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
-                self.line +=1;
+                self.line += 1;
             }
             self.advance();
         }
