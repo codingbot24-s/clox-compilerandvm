@@ -304,7 +304,7 @@ impl compiler {
             // fix this or it will not work expected
             // error partialeq missing for tokentype
             if token.ttype == TokenType::EOF {
-               break;
+                break;
             }
         }
     }
@@ -330,13 +330,14 @@ impl Scanner {
             line: 1,
         }
     }
-
     fn scan_token(&mut self) -> Token {
         self.skip_whitespace();
+
         self.start = self.current;
         if self.is_at_end() {
-            self.make_token(TokenType::EOF);
+           return self.make_token(TokenType::EOF);
         }
+        println!("self current is {}", self.current);
         let c = self.advance();
         match c {
             '(' => self.make_token(TokenType::LEFTPAREN),
@@ -400,12 +401,12 @@ impl Scanner {
             'f' => {
                 if self.current - self.start > 1 {
                     match self.source[self.start + 1] {
-                        'a' => self.check_keyword(2,3,"lse",TokenType::FALSE),
-                        'o' => self.check_keyword(2,1,"r",TokenType::FOR),
-                        'u' => self.check_keyword(2,1,"n",TokenType::FUN),
+                        'a' => self.check_keyword(2, 3, "lse", TokenType::FALSE),
+                        'o' => self.check_keyword(2, 1, "r", TokenType::FOR),
+                        'u' => self.check_keyword(2, 1, "n", TokenType::FUN),
                         _ => TokenType::IDENTIFIER,
                     }
-                }else {
+                } else {
                     TokenType::IDENTIFIER
                 }
             }
@@ -416,13 +417,13 @@ impl Scanner {
             'r' => self.check_keyword(1, 5, "eturn", TokenType::RETURN),
             's' => self.check_keyword(1, 4, "uper", TokenType::SUPER),
             't' => {
-                    if self.current - self.start > 1 {
+                if self.current - self.start > 1 {
                     match self.source[self.start + 1] {
-                        'h' => self.check_keyword(2,2,"is",TokenType::THIS),
-                        'r' => self.check_keyword(2,2,"r",TokenType::TRUE),
+                        'h' => self.check_keyword(2, 2, "is", TokenType::THIS),
+                        'r' => self.check_keyword(2, 2, "r", TokenType::TRUE),
                         _ => TokenType::IDENTIFIER,
                     }
-                }else {
+                } else {
                     TokenType::IDENTIFIER
                 }
             }
@@ -432,15 +433,13 @@ impl Scanner {
         }
     }
 
-    fn check_keyword(&self,start:usize,len:usize,rest:&str,tt:TokenType) -> TokenType {
-        // if self.current - self.start != start + len {
-
-            //return TokenType::IDENTIFIER 
-        // }
-        // let compare:String = self.source[self.start + start..self.current].iter().collect();
-        // if compare.as_str() == rest {
-           //  return tt
-        // }
+    fn check_keyword(&self, start: usize, len: usize, rest: &str, tt: TokenType) -> TokenType {
+        let compare: String = self.source[self.start + start..self.current]
+            .iter()
+            .collect();
+        if compare.as_str() == rest {
+            return tt;
+        }
 
         TokenType::IDENTIFIER
     }
@@ -477,10 +476,19 @@ impl Scanner {
         }
     }
 
+    // fn advance(&mut self) -> char {
+    //     self.current += 1;
+    //     // TODO: some problem here --> index out of bound
+    //     // why None
+    //     self.source.get(self.current - 1).unwrap().clone()
+    // }
     fn advance(&mut self) -> char {
+        if self.is_at_end() {
+            return '\0';
+        }
+        let ch = self.source[self.current];
         self.current += 1;
-        // TODO: some problem here --> index out of bound 
-        self.source[self.current - 1]
+        ch
     }
     fn check_expected(&mut self, expected: char) -> bool {
         if self.is_at_end() {
@@ -523,7 +531,7 @@ impl Scanner {
     fn peek(&self) -> char {
         if self.is_at_end() {
             '\0'
-        }else {
+        } else {
             self.source[self.current]
         }
     }
