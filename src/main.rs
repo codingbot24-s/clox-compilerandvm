@@ -1,4 +1,4 @@
-use std::{char, env, io};
+use std::{char, env, io, os::unix::fs::OpenOptionsExt};
 
 #[derive(Debug)]
 enum OPCODE {
@@ -173,7 +173,7 @@ impl Vm {
 
     fn interpret(&mut self, source: String) -> INTERPRETRESULT {
         let compiler = compiler::new();
-        compiler.compile(source);
+        compiler.compile(&source);
         INTERPRETRESULT::INTERPRETOK
     }
 
@@ -286,7 +286,7 @@ impl compiler {
     fn new() -> Self {
         Self {}
     }
-    fn compile(&self, source: String) {
+    fn compile(&self, source: &String) {
         let mut s = Scanner::new(source);
         let mut line: usize = 0;
         loop {
@@ -303,9 +303,9 @@ impl compiler {
             // TODO: NOTE add break if token type == eof
             // fix this or it will not work expected
             // error partialeq missing for tokentype
-            // if token.ttype == TokenType::EOF {
-
-            // }
+            if token.ttype == TokenType::EOF {
+               break;
+            }
         }
     }
 }
@@ -322,7 +322,7 @@ struct Scanner {
 }
 
 impl Scanner {
-    fn new(source: String) -> Self {
+    fn new(source: &String) -> Self {
         Self {
             source: source.chars().collect(),
             start: 0,
@@ -397,24 +397,52 @@ impl Scanner {
             'a' => self.check_keyword(1, 2, "nd", TokenType::AND),
             'c' => self.check_keyword(1, 4, "lass", TokenType::CLASS),
             'e' => self.check_keyword(1, 3, "lse", TokenType::ELSE),
+            'f' => {
+                if self.current - self.start > 1 {
+                    match self.source[self.start + 1] {
+                        'a' => self.check_keyword(2,3,"lse",TokenType::FALSE),
+                        'o' => self.check_keyword(2,1,"r",TokenType::FOR),
+                        'u' => self.check_keyword(2,1,"n",TokenType::FUN),
+                        _ => TokenType::IDENTIFIER,
+                    }
+                }else {
+                    TokenType::IDENTIFIER
+                }
+            }
             'i' => self.check_keyword(1, 1, "f", TokenType::IF),
             'n' => self.check_keyword(1, 2, "il", TokenType::NIL),
             'o' => self.check_keyword(1, 1, "or", TokenType::OR),
             'p' => self.check_keyword(1, 4, "rint", TokenType::PRINT),
             'r' => self.check_keyword(1, 5, "eturn", TokenType::RETURN),
             's' => self.check_keyword(1, 4, "uper", TokenType::SUPER),
+            't' => {
+                    if self.current - self.start > 1 {
+                    match self.source[self.start + 1] {
+                        'h' => self.check_keyword(2,2,"is",TokenType::THIS),
+                        'r' => self.check_keyword(2,2,"r",TokenType::TRUE),
+                        _ => TokenType::IDENTIFIER,
+                    }
+                }else {
+                    TokenType::IDENTIFIER
+                }
+            }
             'v' => self.check_keyword(1, 2, "ar", TokenType::VAR),
             'w' => self.check_keyword(1, 4, "hile", TokenType::WHILE),
-            _ => {
-                todo!()
-            }
-        };
-
-        TokenType::IDENTIFIER
+            _ => TokenType::IDENTIFIER,
+        }
     }
 
     fn check_keyword(&self,start:usize,len:usize,rest:&str,tt:TokenType) -> TokenType {
-        todo!()
+        // if self.current - self.start != start + len {
+
+            //return TokenType::IDENTIFIER 
+        // }
+        // let compare:String = self.source[self.start + start..self.current].iter().collect();
+        // if compare.as_str() == rest {
+           //  return tt
+        // }
+
+        TokenType::IDENTIFIER
     }
 
     fn number(&mut self) -> Token {
@@ -437,7 +465,7 @@ impl Scanner {
     fn make_token(&self, tt: TokenType) -> Token {
         Token {
             ttype: tt,
-            lexeme: self.source[self.current..self.start].iter().collect(),
+            lexeme: self.source[self.start..self.current].iter().collect(),
             line: self.line,
         }
     }
@@ -451,8 +479,8 @@ impl Scanner {
 
     fn advance(&mut self) -> char {
         self.current += 1;
-        let c = self.source[self.current - 1];
-        c
+        // TODO: some problem here --> index out of bound 
+        self.source[self.current - 1]
     }
     fn check_expected(&mut self, expected: char) -> bool {
         if self.is_at_end() {
@@ -493,7 +521,11 @@ impl Scanner {
     }
 
     fn peek(&self) -> char {
-        self.source[self.current]
+        if self.is_at_end() {
+            '\0'
+        }else {
+            self.source[self.current]
+        }
     }
 
     fn peek_next(&self) -> char {
@@ -527,7 +559,7 @@ struct Token {
 
 impl Token {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum TokenType {
     LEFTPAREN,
     RIGHTPAREN,
