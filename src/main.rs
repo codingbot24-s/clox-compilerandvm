@@ -420,7 +420,7 @@ impl Scanner {
                 if self.current - self.start > 1 {
                     match self.source[self.start + 1] {
                         'h' => self.check_keyword(2, 2, "is", TokenType::THIS),
-                        'r' => self.check_keyword(2, 2, "r", TokenType::TRUE),
+                        'r' => self.check_keyword(2, 2, "ue", TokenType::TRUE),
                         _ => TokenType::IDENTIFIER,
                     }
                 } else {
