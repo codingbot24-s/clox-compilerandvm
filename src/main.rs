@@ -170,7 +170,13 @@ impl Vm {
             stack: Vec::with_capacity(256),
         }
     }
-
+    /* 
+        1 . create the new chunck 
+        2 . pass it to the compiler func 
+        3 . it will fill the chunk with the bytecode 
+        4 . if error occurs it will return false and 
+            we discard the unusable chunk 
+    */  
     fn interpret(&mut self, source: String) -> INTERPRETRESULT {
         let compiler = compiler::new();
         compiler.compile(&source);
