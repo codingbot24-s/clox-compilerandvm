@@ -178,8 +178,10 @@ impl Vm {
             we discard the unusable chunk 
     */  
     fn interpret(&mut self, source: String) -> INTERPRETRESULT {
+        let c = Chunk::new();
+        
         let compiler = compiler::new();
-        compiler.compile(&source);
+        compiler.compile(&source,&c);
         INTERPRETRESULT::INTERPRETOK
     }
 
@@ -286,34 +288,50 @@ fn run_file(path: &str, vm: &mut Vm) {
 /*
     compiler
 */
-struct compiler {}
 
-impl compiler {
+/*
+    Single Pass compiler
+*/
+
+
+
+
+struct Parser {
+    cur:Token,
+    prev:Token,
+}
+
+impl Parser {
+    fn advance(&mut self) {
+        // TODO:  error cant move with &mut 
+        // self.prev = self.cur;
+
+    }
+
+
+    fn expression(&self) {
+        
+    }
+
+    fn consume(&self,tt:TokenType,msg:&str) {}
+}
+struct Compiler {
+    p:Parser
+}
+
+impl Compiler {
     fn new() -> Self {
         Self {}
     }
-    fn compile(&self, source: &String) {
+    fn compile(&self, source: &String,ch:&Chunk) {
         let mut s = Scanner::new(source);
-        let mut line: usize = 0;
-        loop {
-            let token = s.scan_token();
-            if token.line != line {
-                println!("{:4}", token.line);
-                line = token.line;
-            } else {
-                println!("   | ");
-            }
-
-            println!("{:?} '{}',{},", token.ttype, token.lexeme, token.line);
-
-            // TODO: NOTE add break if token type == eof
-            // fix this or it will not work expected
-            // error partialeq missing for tokentype
-            if token.ttype == TokenType::EOF {
-                break;
-            }
-        }
+        // self.p.advance();
+        self.p.expression();
+        
+        
     }
+
+    
 }
 
 /*
