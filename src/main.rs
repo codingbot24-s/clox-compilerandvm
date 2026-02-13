@@ -326,8 +326,11 @@ struct Compiler {
 }
 
 impl Compiler {
+    // return the new compiler with default parser impl  
     fn new() -> Self {
-        Self {}
+        Self {
+            p:Parser::new(),
+        }
     }
     fn compile(&self, source: &String,ch:&Chunk) {
         let mut s = Scanner::new(source);
