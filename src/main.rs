@@ -170,18 +170,18 @@ impl Vm {
             stack: Vec::with_capacity(256),
         }
     }
-    /* 
-        1 . create the new chunck 
-        2 . pass it to the compiler func 
-        3 . it will fill the chunk with the bytecode 
-        4 . if error occurs it will return false and 
-            we discard the unusable chunk 
-    */  
+    /*
+        1 . create the new chunck
+        2 . pass it to the compiler func
+        3 . it will fill the chunk with the bytecode
+        4 . if error occurs it will return false and
+            we discard the unusable chunk
+    */
     fn interpret(&mut self, source: String) -> INTERPRETRESULT {
         let c = Chunk::new();
-        
-        let compiler = compiler::new();
-        compiler.compile(&source,&c);
+
+        let mut compiler = Compiler::new();
+        compiler.compile(&source, &c);
         INTERPRETRESULT::INTERPRETOK
     }
 
@@ -293,54 +293,70 @@ fn run_file(path: &str, vm: &mut Vm) {
     Single Pass compiler
 */
 
-
-
-
 struct Parser {
-    cur:Token,
-    prev:Token,
+    cur: Token,
+    prev: Token,
 }
 
 impl Parser {
-    fn new () -> Self {
+    fn new() -> Self {
         Self {
-            cur:Token::default(),
-            prev:Token::default(),
+            cur: Token::default(),
+            prev: Token::default(),
         }
     }
-    fn advance(&mut self) {
-        // TODO:  error cant move with &mut 
-        // self.prev = self.cur;
 
-    }
+    fn expression(&self) {}
 
-
-    fn expression(&self) {
-        
-    }
-
-    fn consume(&self,tt:TokenType,msg:&str) {}
+    fn consume(&self, tt: TokenType, msg: &str) {}
 }
+
+// compiler need the scanner for parsing
 struct Compiler {
-    p:Parser
+    p: Parser,
 }
 
 impl Compiler {
-    // return the new compiler with default parser impl  
+    // return the new compiler with default parser impl
     fn new() -> Self {
-        Self {
-            p:Parser::new(),
-        }
+        Self { p: Parser::new() }
     }
-    fn compile(&self, source: &String,ch:&Chunk) {
+    fn compile(&mut self, source: &String, ch: &Chunk) {
         let mut s = Scanner::new(source);
-        // self.p.advance();
+        // can we pass the scanner in the advance by &mut
+        self.advance(&mut s);
         self.p.expression();
-        
-        
     }
 
-    
+    fn advance(&mut self, s: &mut Scanner) {
+        self.p.prev = self.p.cur.clone();
+        loop {
+            self.p.cur = s.scan_token();
+            if self.p.cur.ttype != TokenType::ERROR {
+                break;
+            }
+            self.error_at_curr(&self.p.cur.lexeme);
+        }
+    }
+
+    fn error_at_curr(&self, msg: &str) {
+        //TODO: call the error_at
+        self.error_at(&self.p.cur, msg);
+    }
+
+    fn error(&self, msg: &str) {
+        self.error_at(&self.p.prev, msg);
+    }
+
+    fn error_at(&self, t: &Token, msg: &str) {
+        eprintln!("line {} Error", t.line);
+        if t.ttype == TokenType::EOF {
+            eprintln!(" at end");
+        } else if t.ttype == TokenType::ERROR {
+            unimplemented!()
+        } else {
+        }
+    }
 }
 
 /*
@@ -368,7 +384,7 @@ impl Scanner {
 
         self.start = self.current;
         if self.is_at_end() {
-           return self.make_token(TokenType::EOF);
+            return self.make_token(TokenType::EOF);
         }
         println!("self current is {}", self.current);
         let c = self.advance();
@@ -592,24 +608,25 @@ impl Scanner {
     }
 }
 
-
+#[derive(Clone)]
+// Token lexeme is start in the book
 struct Token {
     ttype: TokenType,
     lexeme: String,
     line: usize,
 }
 
-impl Default for Token  {
-   fn default() -> Self {
-    Self { 
-        ttype:TokenType::UNNDIFINED,
-        lexeme:String::new(),
-        line :0,       
+impl Default for Token {
+    fn default() -> Self {
+        Self {
+            ttype: TokenType::UNNDIFINED,
+            lexeme: String::new(),
+            line: 0,
+        }
     }
-   } 
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum TokenType {
     LEFTPAREN,
     RIGHTPAREN,
@@ -656,7 +673,7 @@ enum TokenType {
     EOF,
 
     ERROR,
-    UNNDIFINED
+    UNNDIFINED,
 }
 
 fn main() {
