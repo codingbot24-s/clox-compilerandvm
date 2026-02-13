@@ -302,6 +302,12 @@ struct Parser {
 }
 
 impl Parser {
+    fn new () -> Self {
+        Self {
+            cur:Token::default(),
+            prev:Token::default(),
+        }
+    }
     fn advance(&mut self) {
         // TODO:  error cant move with &mut 
         // self.prev = self.cur;
@@ -583,13 +589,22 @@ impl Scanner {
     }
 }
 
+
 struct Token {
     ttype: TokenType,
     lexeme: String,
     line: usize,
 }
 
-impl Token {}
+impl Default for Token  {
+   fn default() -> Self {
+    Self { 
+        ttype:TokenType::UNNDIFINED,
+        lexeme:String::new(),
+        line :0,       
+    }
+   } 
+}
 
 #[derive(Debug, PartialEq)]
 enum TokenType {
@@ -638,6 +653,7 @@ enum TokenType {
     EOF,
 
     ERROR,
+    UNNDIFINED
 }
 
 fn main() {
