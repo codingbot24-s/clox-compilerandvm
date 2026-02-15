@@ -343,27 +343,33 @@ impl Compiler {
 
     fn error_at_curr(&self, msg: &str) {
         self.error_at(&self.p.cur, msg);
+        
+    }
+    fn error(&mut self, msg: &str) {
+        self.error_at( &self.p.prev, msg);
     }
         
 
-    fn error(&self, msg: &str) {
-        self.error_at(&self.p.prev, msg);
-    }
 
     fn error_at(&self, t: &Token, msg: &str) {
-        eprintln!("line {} Error", t.line);
+        eprintln!("[line {}] Error", t.line);
         if t.ttype == TokenType::EOF {
             eprintln!(" at end");
         } else if t.ttype == TokenType::ERROR {
             unimplemented!()
         } else {
-            // TODO: we need to do %.*s' this   
-            eprintln!("at {}",t.lexeme);
+            
+            eprintln!(" at '{}' ",t.lexeme);
         }
 
         eprintln!("{}",msg);
+        // TODO: we need to make p.had_error = true;
         // error here cant take the &mut otherwise we need to 
         // we need to pass it as &mut in all the function 
+        // and two mutable borrows will occurs 
+        // opt1 --> if we can move this field up 
+        //          it dosnt work because of line 340 
+        //          need to think better design
         // self.p.had_error = true; 
 
     }
