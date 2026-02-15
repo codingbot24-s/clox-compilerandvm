@@ -296,6 +296,7 @@ fn run_file(path: &str, vm: &mut Vm) {
 struct Parser {
     cur: Token,
     prev: Token,
+    had_error: bool
 }
 
 impl Parser {
@@ -303,6 +304,7 @@ impl Parser {
         Self {
             cur: Token::default(),
             prev: Token::default(),
+            had_error:false,
         }
     }
 
@@ -323,7 +325,7 @@ impl Compiler {
     }
     fn compile(&mut self, source: &String, ch: &Chunk) {
         let mut s = Scanner::new(source);
-        // can we pass the scanner in the advance by &mut
+        
         self.advance(&mut s);
         self.p.expression();
     }
@@ -340,9 +342,9 @@ impl Compiler {
     }
 
     fn error_at_curr(&self, msg: &str) {
-        //TODO: call the error_at
         self.error_at(&self.p.cur, msg);
     }
+        
 
     fn error(&self, msg: &str) {
         self.error_at(&self.p.prev, msg);
@@ -355,7 +357,15 @@ impl Compiler {
         } else if t.ttype == TokenType::ERROR {
             unimplemented!()
         } else {
+            // TODO: we need to do %.*s' this   
+            eprintln!("at {}",t.lexeme);
         }
+
+        eprintln!("{}",msg);
+        // error here cant take the &mut otherwise we need to 
+        // we need to pass it as &mut in all the function 
+        // self.p.had_error = true; 
+
     }
 }
 
