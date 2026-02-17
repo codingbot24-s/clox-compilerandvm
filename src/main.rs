@@ -1,4 +1,4 @@
-use std::{cell::RefCell, char, env, io};
+use std::{cell::RefCell, char, env, io, ptr};
 
 #[derive(Debug)]
 enum OPCODE {
@@ -78,7 +78,10 @@ impl Chunk {
             constants: ValueArr::new(),
         }
     }
-    
+    // get the raw *mut to chunk 
+    fn get_curr (&mut self) -> *mut Self {
+        self as *mut Self
+    }  
     fn write(&mut self, byte: u8, line: usize) {
         self.code.push(byte);
         self.lines.push(line);
@@ -170,10 +173,10 @@ impl Vm {
     }
    
     fn interpret(&mut self, source: String) -> INTERPRETRESULT {
-        let c = Chunk::new();
+        let mut c = Chunk::new();
 
         let mut compiler = Compiler::new();
-        compiler.compile(source, &c);
+        compiler.compile(source, &mut c);
         INTERPRETRESULT::INTERPRETOK
     }
 
@@ -312,6 +315,7 @@ impl Parser {
 struct Compiler {
     p: Parser,
     s:Scanner,
+    curr_chunk:*mut Chunk
 }
 
 impl Compiler {
@@ -320,7 +324,7 @@ impl Compiler {
         Self { 
             p: Parser::new(),
             s: Scanner::new("".to_string()),
-
+            curr_chunk:ptr::null_mut(),
         }
     }
 
@@ -349,14 +353,21 @@ impl Compiler {
         //TODO: how can we get the curr get 
 
     }
-    fn compile(&mut self, source: String, ch: &Chunk) -> bool {
+    fn compile(&mut self, source: String, ch: &mut Chunk) -> bool {
         // we can just get the curr chunk store the *mut in compiler
+        if ch.get_curr().is_null() {
+            eprintln!("error getting the curr chunk");
+            return true
+        }
+        self.curr_chunk = ch.get_curr();
         self.advance();
         self.p.expression();
         self.consume(TokenType::EOF, "expected end of expression");
         if *self.p.had_error.borrow() == false {
+            eprintln!("compiling no error");
             false
         }else {
+            eprintln!("error cant compile");
             true
         }
     }
