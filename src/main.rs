@@ -1,4 +1,4 @@
-use std::{cell::RefCell, char, env, io, os::unix::fs::OpenOptionsExt};
+use std::{cell::RefCell, char, env, io};
 
 #[derive(Debug)]
 enum OPCODE {
@@ -78,7 +78,7 @@ impl Chunk {
             constants: ValueArr::new(),
         }
     }
-
+    
     fn write(&mut self, byte: u8, line: usize) {
         self.code.push(byte);
         self.lines.push(line);
@@ -150,8 +150,6 @@ impl Chunk {
 
 enum INTERPRETRESULT {
     INTERPRETOK,
-    INTERPRETCOMPILEERROR,
-    INTERPRETRUNTIMEERROR,
 }
 
 /*
@@ -170,13 +168,7 @@ impl Vm {
             stack: Vec::with_capacity(256),
         }
     }
-    /*
-        1 . create the new chunck
-        2 . pass it to the compiler func
-        3 . it will fill the chunk with the bytecode
-        4 . if error occurs it will return false and
-            we discard the unusable chunk
-    */
+   
     fn interpret(&mut self, source: String) -> INTERPRETRESULT {
         let c = Chunk::new();
 
@@ -316,9 +308,10 @@ impl Parser {
 }
 
 // compiler need the scanner for parsing
+// TODO: compiler need the curr chunk &'a mut chunk  
 struct Compiler {
     p: Parser,
-    s:Scanner
+    s:Scanner,
 }
 
 impl Compiler {
@@ -326,7 +319,8 @@ impl Compiler {
     fn new() -> Self {
         Self { 
             p: Parser::new(),
-            s: Scanner::new("".to_string())
+            s: Scanner::new("".to_string()),
+
         }
     }
 
@@ -338,7 +332,7 @@ impl Compiler {
 
        self.error_at_curr(msg);
     }
-    //NOTE:(saad) do we need to paas the scanner here ?
+    
     fn advance(&mut self) {
         self.p.prev = self.p.cur.clone();
         loop {
@@ -349,11 +343,14 @@ impl Compiler {
             self.error_at_curr(&self.p.cur.lexeme);
         }
     }
-    
 
+    fn emit_byte(&self, byte:u8) {
+        // write the byte in the current chunk 
+        //TODO: how can we get the curr get 
+
+    }
     fn compile(&mut self, source: String, ch: &Chunk) -> bool {
-        let mut s = Scanner::new(source);
-        
+        // we can just get the curr chunk store the *mut in compiler
         self.advance();
         self.p.expression();
         self.consume(TokenType::EOF, "expected end of expression");
