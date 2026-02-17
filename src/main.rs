@@ -350,8 +350,6 @@ impl Compiler {
 
     fn emit_byte(&self, byte:u8) {
         // write the byte in the current chunk 
-        //TODO: how can we get the curr get 
-
     }
     fn compile(&mut self, source: String, ch: &mut Chunk) -> bool {
         // we can just get the curr chunk store the *mut in compiler
@@ -360,6 +358,8 @@ impl Compiler {
             return true
         }
         self.curr_chunk = ch.get_curr();
+
+
         self.advance();
         self.p.expression();
         self.consume(TokenType::EOF, "expected end of expression");
