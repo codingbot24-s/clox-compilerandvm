@@ -1,4 +1,4 @@
-use std::{char, env, io, os::unix::fs::OpenOptionsExt};
+use std::{cell::RefCell, char, env, io, os::unix::fs::OpenOptionsExt};
 
 #[derive(Debug)]
 enum OPCODE {
@@ -181,7 +181,7 @@ impl Vm {
         let c = Chunk::new();
 
         let mut compiler = Compiler::new();
-        compiler.compile(&source, &c);
+        compiler.compile(source, &c);
         INTERPRETRESULT::INTERPRETOK
     }
 
@@ -296,7 +296,8 @@ fn run_file(path: &str, vm: &mut Vm) {
 struct Parser {
     cur: Token,
     prev: Token,
-    had_error: bool
+    had_error: RefCell<bool>,
+    panic_mode:  RefCell<bool>,
 }
 
 impl Parser {
@@ -304,43 +305,65 @@ impl Parser {
         Self {
             cur: Token::default(),
             prev: Token::default(),
-            had_error:false,
+            had_error:RefCell::new(false),
+            panic_mode:RefCell::new(false),
         }
     }
 
     fn expression(&self) {}
+   
 
-    fn consume(&self, tt: TokenType, msg: &str) {}
 }
 
 // compiler need the scanner for parsing
 struct Compiler {
     p: Parser,
+    s:Scanner
 }
 
 impl Compiler {
     // return the new compiler with default parser impl
     fn new() -> Self {
-        Self { p: Parser::new() }
-    }
-    fn compile(&mut self, source: &String, ch: &Chunk) {
-        let mut s = Scanner::new(source);
-        
-        self.advance(&mut s);
-        self.p.expression();
+        Self { 
+            p: Parser::new(),
+            s: Scanner::new("".to_string())
+        }
     }
 
-    fn advance(&mut self, s: &mut Scanner) {
+    fn consume(&mut self, tt: TokenType, msg: &str) {
+        if self.p.cur.ttype == tt {
+            self.advance();
+            return;
+        }
+
+       self.error_at_curr(msg);
+    }
+    //NOTE:(saad) do we need to paas the scanner here ?
+    fn advance(&mut self) {
         self.p.prev = self.p.cur.clone();
         loop {
-            self.p.cur = s.scan_token();
+            self.p.cur = self.s.scan_token();
             if self.p.cur.ttype != TokenType::ERROR {
                 break;
             }
             self.error_at_curr(&self.p.cur.lexeme);
         }
     }
+    
 
+    fn compile(&mut self, source: String, ch: &Chunk) -> bool {
+        let mut s = Scanner::new(source);
+        
+        self.advance();
+        self.p.expression();
+        self.consume(TokenType::EOF, "expected end of expression");
+        if *self.p.had_error.borrow() == false {
+            false
+        }else {
+            true
+        }
+    }
+    
     fn error_at_curr(&self, msg: &str) {
         self.error_at(&self.p.cur, msg);
         
@@ -348,10 +371,14 @@ impl Compiler {
     fn error(&mut self, msg: &str) {
         self.error_at( &self.p.prev, msg);
     }
-        
-
-
+    
+    
+    
     fn error_at(&self, t: &Token, msg: &str) {
+        if *self.p.panic_mode.borrow() == true {
+           return  
+        }
+        self.p.panic_mode.replace(true);
         eprintln!("[line {}] Error", t.line);
         if t.ttype == TokenType::EOF {
             eprintln!(" at end");
@@ -363,14 +390,8 @@ impl Compiler {
         }
 
         eprintln!("{}",msg);
-        // TODO: we need to make p.had_error = true;
-        // error here cant take the &mut otherwise we need to 
-        // we need to pass it as &mut in all the function 
-        // and two mutable borrows will occurs 
-        // opt1 --> if we can move this field up 
-        //          it dosnt work because of line 340 
-        //          need to think better design
-        // self.p.had_error = true; 
+        // used refcell smart pointer 
+        self.p.had_error.replace(false); 
 
     }
 }
@@ -387,7 +408,7 @@ struct Scanner {
 }
 
 impl Scanner {
-    fn new(source: &String) -> Self {
+    fn new(source: String) -> Self {
         Self {
             source: source.chars().collect(),
             start: 0,
@@ -540,13 +561,6 @@ impl Scanner {
             line: self.line,
         }
     }
-
-    // fn advance(&mut self) -> char {
-    //     self.current += 1;
-    //     // TODO: some problem here --> index out of bound
-    //     // why None
-    //     self.source.get(self.current - 1).unwrap().clone()
-    // }
     fn advance(&mut self) -> char {
         if self.is_at_end() {
             return '\0';
