@@ -78,10 +78,7 @@ impl Chunk {
             constants: ValueArr::new(),
         }
     }
-    // get the raw *mut to chunk 
-    fn get_curr (&mut self) -> *mut Self {
-        self as *mut Self
-    }  
+    
     fn write(&mut self, byte: u8, line: usize) {
         self.code.push(byte);
         self.lines.push(line);
@@ -149,6 +146,10 @@ impl Chunk {
     fn get_constant(&self, index: usize) -> Value {
         self.constants.read_value(index)
     }
+
+    fn get_curr(&mut self) -> &mut Self {
+        self as & mut Self
+    }
 }
 
 enum INTERPRETRESULT {
@@ -175,8 +176,8 @@ impl Vm {
     fn interpret(&mut self, source: String) -> INTERPRETRESULT {
         let mut c = Chunk::new();
 
-        let mut compiler = Compiler::new();
-        compiler.compile(source, &mut c);
+        let mut compiler = Compiler::new(&mut c);
+        compiler.compile(source);
         INTERPRETRESULT::INTERPRETOK
     }
 
@@ -312,19 +313,20 @@ impl Parser {
 
 // compiler need the scanner for parsing
 // TODO: compiler need the curr chunk &'a mut chunk  
-struct Compiler {
+struct Compiler<'a> {
     p: Parser,
     s:Scanner,
-    curr_chunk:*mut Chunk
+    curr_chunk:&'a mut Chunk,
 }
 
-impl Compiler {
+impl<'a>  Compiler <'a> {
     // return the new compiler with default parser impl
-    fn new() -> Self {
+    // can we pass the chunk in the compiler 
+    fn new(c:&'a mut Chunk) -> Self {
         Self { 
             p: Parser::new(),
             s: Scanner::new("".to_string()),
-            curr_chunk:ptr::null_mut(),
+            curr_chunk :c,
         }
     }
 
@@ -348,21 +350,16 @@ impl Compiler {
         }
     }
 
-    fn emit_byte(&self, byte:u8) {
-        // write the byte in the current chunk 
+    fn emit_byte(&mut self, byte:u8) {
+        // write the byte in the current chunk
+        self.curr_chunk.write(byte, self.p.prev.line);
     }
-    fn compile(&mut self, source: String, ch: &mut Chunk) -> bool {
-        // we can just get the curr chunk store the *mut in compiler
-        if ch.get_curr().is_null() {
-            eprintln!("error getting the curr chunk");
-            return true
-        }
-        self.curr_chunk = ch.get_curr();
-
+    fn compile(&mut self, source: String,) -> bool {
 
         self.advance();
         self.p.expression();
         self.consume(TokenType::EOF, "expected end of expression");
+        self.end();
         if *self.p.had_error.borrow() == false {
             eprintln!("compiling no error");
             false
@@ -400,8 +397,20 @@ impl Compiler {
         eprintln!("{}",msg);
         // used refcell smart pointer 
         self.p.had_error.replace(false); 
-
     }
+    
+    fn emit_bytes(&mut self,b1:u8,b2:u8) {
+        self.emit_byte(b1);
+        self.emit_byte(b2);
+    }
+
+    fn emit_return(&mut self)  {
+        self.emit_byte(OPCODE::OPRETURN.into());
+    }  
+    fn end(&mut self) {
+        self.emit_return();
+    }
+
 }
 
 /*
