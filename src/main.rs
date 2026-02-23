@@ -411,6 +411,7 @@ impl<'a>  Compiler <'a> {
         self.emit_return();
     }
 
+    fn expression(&self) {}
 }
 
 /*
