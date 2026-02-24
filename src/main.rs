@@ -412,6 +412,24 @@ impl<'a>  Compiler <'a> {
     }
 
     fn expression(&self) {}
+
+    fn number(&mut self) {
+        let v:f64 = self.p.prev.lexeme.parse().unwrap();
+        self.emit_constant(v);             
+    }
+    // NOTE: error two mutable&     
+    fn emit_constant(&mut self, v:Value) {
+        self.emit_bytes(OPCODE::OPCONSTANT.into(),self.make_constant(v).unwrap());
+    }
+
+    // fn make_constant(&mut self,v:Value) -> Result<u8,()> {
+    //     let constant = self.curr_chunk.add_constants(v) as i32;
+    //     if constant > i32::MAX {
+    //         return Err(eprintln!("error to many constant in one chunk"));
+    //     }
+    //     Ok((constant as u8))
+    // }
+
 }
 
 /*
