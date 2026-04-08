@@ -1,4 +1,8 @@
-use std::{cell::RefCell, char, env, io, ptr};
+use std::{cell::RefCell, char, env, io};
+
+
+// continue from table
+
 
 #[derive(Debug)]
 enum OPCODE {
@@ -78,7 +82,7 @@ impl Chunk {
             constants: ValueArr::new(),
         }
     }
-    
+
     fn write(&mut self, byte: u8, line: usize) {
         self.code.push(byte);
         self.lines.push(line);
@@ -148,7 +152,7 @@ impl Chunk {
     }
 
     fn get_curr(&mut self) -> &mut Self {
-        self as & mut Self
+        self as &mut Self
     }
 }
 
@@ -172,7 +176,7 @@ impl Vm {
             stack: Vec::with_capacity(256),
         }
     }
-   
+
     fn interpret(&mut self, source: String) -> INTERPRETRESULT {
         let mut c = Chunk::new();
 
@@ -275,7 +279,7 @@ fn run_file(path: &str, vm: &mut Vm) {
         Ok(source) => {
             vm.interpret(source);
         }
-        Err(err) => {
+        Err(_err) => {
             println!("error reading from the file")
         }
     }
@@ -293,7 +297,33 @@ struct Parser {
     cur: Token,
     prev: Token,
     had_error: RefCell<bool>,
-    panic_mode:  RefCell<bool>,
+    panic_mode: RefCell<bool>,
+}
+/*
+    Lox’s precedence levels in order from lowest to highest
+    call to one will pass the higher not lower one
+    C implicitly gives successively larger numbers for enums
+*/
+enum Precedence {
+    PREC_NONE,
+    PREC_ASSIGNMENT,
+    PREC_OR,         // or
+    PREC_AND,        // and
+    PREC_EQUALITY,   // == !=
+    PREC_COMPARISON, // < > <= >=
+    PREC_TERM,       // + -
+    PREC_FACTOR,     // * /
+    PREC_UNARY,      // ! -
+    PREC_CALL,       // . ()
+    PREC_PRIMARY,
+}
+
+type ParseFn = fn();
+
+struct ParseRule {
+    prefix: ParseFn,
+    infix: ParseFn,
+    precedence: Precedence,
 }
 
 impl Parser {
@@ -301,32 +331,37 @@ impl Parser {
         Self {
             cur: Token::default(),
             prev: Token::default(),
-            had_error:RefCell::new(false),
-            panic_mode:RefCell::new(false),
+            had_error: RefCell::new(false),
+            panic_mode: RefCell::new(false),
         }
     }
 
-    fn expression(&self) {}
-   
+    fn parse_precedence(&self, prec: Precedence) {
+        unimplemented!()
+    }
 
+    fn expression(&self) {
+        self.parse_precedence(Precedence::PREC_ASSIGNMENT);
+    }
+
+    fn get_rule(&self) {
+        unimplemented!()
+    }
 }
-
-// compiler need the scanner for parsing
-// TODO: compiler need the curr chunk &'a mut chunk  
 struct Compiler<'a> {
     p: Parser,
-    s:Scanner,
-    curr_chunk:&'a mut Chunk,
+    s: Scanner,
+    curr_chunk: &'a mut Chunk,
 }
 
-impl<'a>  Compiler <'a> {
+impl<'a> Compiler<'a> {
     // return the new compiler with default parser impl
-    // can we pass the chunk in the compiler 
-    fn new(c:&'a mut Chunk) -> Self {
-        Self { 
+    // can we pass the chunk in the compiler
+    fn new(c: &'a mut Chunk) -> Self {
+        Self {
             p: Parser::new(),
             s: Scanner::new("".to_string()),
-            curr_chunk :c,
+            curr_chunk: c,
         }
     }
 
@@ -336,9 +371,9 @@ impl<'a>  Compiler <'a> {
             return;
         }
 
-       self.error_at_curr(msg);
+        self.error_at_curr(msg);
     }
-    
+
     fn advance(&mut self) {
         self.p.prev = self.p.cur.clone();
         loop {
@@ -350,12 +385,11 @@ impl<'a>  Compiler <'a> {
         }
     }
 
-    fn emit_byte(&mut self, byte:u8) {
+    fn emit_byte(&mut self, byte: u8) {
         // write the byte in the current chunk
         self.curr_chunk.write(byte, self.p.prev.line);
     }
-    fn compile(&mut self, source: String,) -> bool {
-
+    fn compile(&mut self, source: String) -> bool {
         self.advance();
         self.p.expression();
         self.consume(TokenType::EOF, "expected end of expression");
@@ -363,25 +397,22 @@ impl<'a>  Compiler <'a> {
         if *self.p.had_error.borrow() == false {
             eprintln!("compiling no error");
             false
-        }else {
+        } else {
             eprintln!("error cant compile");
             true
         }
     }
-    
+
     fn error_at_curr(&self, msg: &str) {
         self.error_at(&self.p.cur, msg);
-        
     }
     fn error(&mut self, msg: &str) {
-        self.error_at( &self.p.prev, msg);
+        self.error_at(&self.p.prev, msg);
     }
-    
-    
-    
+
     fn error_at(&self, t: &Token, msg: &str) {
         if *self.p.panic_mode.borrow() == true {
-           return  
+            return;
         }
         self.p.panic_mode.replace(true);
         eprintln!("[line {}] Error", t.line);
@@ -390,46 +421,72 @@ impl<'a>  Compiler <'a> {
         } else if t.ttype == TokenType::ERROR {
             unimplemented!()
         } else {
-            
-            eprintln!(" at '{}' ",t.lexeme);
+            eprintln!(" at '{}' ", t.lexeme);
         }
 
-        eprintln!("{}",msg);
-        // used refcell smart pointer 
-        self.p.had_error.replace(false); 
+        eprintln!("{}", msg);
+        // used refcell smart pointer
+        self.p.had_error.replace(false);
     }
-    
-    fn emit_bytes(&mut self,b1:u8,b2:u8) {
+
+    fn emit_bytes(&mut self, b1: u8, b2: u8) {
         self.emit_byte(b1);
         self.emit_byte(b2);
     }
 
-    fn emit_return(&mut self)  {
+    fn emit_return(&mut self) {
         self.emit_byte(OPCODE::OPRETURN.into());
-    }  
+    }
     fn end(&mut self) {
         self.emit_return();
     }
 
-    fn expression(&self) {}
-
     fn number(&mut self) {
-        let v:f64 = self.p.prev.lexeme.parse().unwrap();
-        self.emit_constant(v);             
-    }
-    // NOTE: error two mutable&     
-    fn emit_constant(&mut self, v:Value) {
-        self.emit_bytes(OPCODE::OPCONSTANT.into(),self.make_constant(v).unwrap());
+        let v: f64 = self.p.prev.lexeme.parse().unwrap();
+        self.emit_constant(v);
     }
 
-    // fn make_constant(&mut self,v:Value) -> Result<u8,()> {
-    //     let constant = self.curr_chunk.add_constants(v) as i32;
-    //     if constant > i32::MAX {
-    //         return Err(eprintln!("error to many constant in one chunk"));
-    //     }
-    //     Ok((constant as u8))
-    // }
+    fn unary(&mut self) {
+        let op_type: Token = self.p.prev.clone();
+        self.p.parse_precedence(Precedence::PREC_UNARY);
+        match op_type.ttype {
+            TokenType::MINUS => self.emit_byte(OPCODE::OPNEGATE.into()),
+            _ => return,
+        }
+    }
 
+    fn emit_constant(&mut self, v: Value) {
+        // created a constant for
+        let constant = self.make_constant(v).unwrap();
+        self.emit_bytes(OPCODE::OPCONSTANT.into(), constant);
+    }
+
+    fn make_constant(&mut self, v: Value) -> Result<u8, ()> {
+        let constant = self.curr_chunk.add_constants(v) as i32;
+        if constant > i32::MAX {
+            return Err(eprintln!("error to many constant in one chunk"));
+        }
+        Ok(constant as u8)
+    }
+
+    fn grouping(&mut self) {
+        self.p.expression();
+        self.consume(TokenType::RIGHTPAREN, "Expect ')' after expression.");
+    }
+
+    fn binary(&mut self) {
+        let op_type = self.p.prev.ttype;
+        self.p.get_rule();
+        //TODO: call the parse precendence
+        match op_type {
+            TokenType::PLUS => self.emit_byte(OPCODE::OPADD.into()),
+            TokenType::MINUS => self.emit_byte(OPCODE::OPNEGATE.into()),
+            TokenType::STAR => self.emit_byte(OPCODE::OPMUL.into()),
+            TokenType::SLASH => self.emit_byte(OPCODE::OPDIVIDE.into()),
+
+            _ => return,
+        }
+    }
 }
 
 /*
@@ -758,5 +815,3 @@ fn main() {
 
     vm.free_vm();
 }
-
-// remaining from scanner //
